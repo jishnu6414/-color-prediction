@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { display: block; padding: 24px; }
+    .container { max-width: 720px; margin: 0 auto; }
+    .top-nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .top-nav a { color: #b6d6f0; text-decoration: none; padding: 8px 14px; background: #162230; border-radius: 12px; border: 1px solid #2e4b60; font-size: 0.9rem; }
+    .top-nav a:hover { background: #1e3448; color: #fff; }
+    .top-nav a.active { background: #ffdb5c; color: #162230; font-weight: 700; }
+    .lb-card { background: #10232e; border-radius: 16px; padding: 14px 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 16px; border-left: 5px solid #2e4b60; }
+    .lb-card.gold   { border-left-color: #ffd700; background: linear-gradient(145deg, #2a2410, #10232e); }
+    .lb-card.silver { border-left-color: #c0c0c0; }
+    .lb-card.bronze { border-left-color: #cd7f32; }
+    .rank { font-size: 1.4rem; font-weight: 800; min-width: 42px; color: #ffdb5c; }
+    .rank.plain { color: #8aaec9; }
+    .name { font-weight: 700; flex: 1; text-transform: capitalize; color: #fff; }
+    .bal { font-weight: 700; color: #7ef0a0; }
+    .stats { color: #8aaec9; font-size: 0.8rem; margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+  <a href="/">🎮 Game</a>
+  <a href="/deposit.html">💳 Deposit</a>
+  <a href="/history.html">📜 History</a>
+  <a href="/leaderboard.html">🏆 Leaderboard</a>
+  <a href="/profile.html">👤 Profile</a>
+  <button onclick="logout()" class="btn-secondary" style="padding:8px 14px; font-size:0.9rem; margin-left:auto;">Logout</button>
+</div>
+    <h1 style="font-size:1.8rem; margin-bottom:8px;">🏆 Top 10 Players</h1>
+    <p style="color:#8aaec9; margin-bottom:20px;">Ranked by balance</p>
+
+    <div id="list"></div>
+  </div>
+
+  <script>
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    async function load() {
+      const res = await fetch('/api/leaderboard');
+      const users = await res.json();
+      const list = document.getElementById('list');
+
+      if (users.length === 0) {
+        list.innerHTML = '<div class="empty-msg" style="text-align:center; color:#5f7d94; padding:40px;">No players yet.</div>';
+        return;
+      }
+
+      const medals = ['🥇', '🥈', '🥉'];
+      list.innerHTML = users.map((u, i) => {
+        const cls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+        const rank = i < 3 ? medals[i] : (i + 1);
+        return `
+          <div class="lb-card ${cls}">
+            <div class="rank ${i >= 3 ? 'plain' : ''}">${rank}</div>
+            <div class="name">${u.username}</div>
+            <div class="bal">$${u.balance.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+            <div class="stats">W: ${u.wins} · L: ${u.losses}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    load();
+  </script>
+</body>
+</html>

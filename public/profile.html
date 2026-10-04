@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { display: block; padding: 24px; }
+    .container { max-width: 720px; margin: 0 auto; }
+    .top-nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .top-nav a { color: #b6d6f0; text-decoration: none; padding: 8px 14px; background: #162230; border-radius: 12px; border: 1px solid #2e4b60; font-size: 0.9rem; }
+    .top-nav a:hover { background: #1e3448; color: #fff; }
+    .top-nav a.active { background: #ffdb5c; color: #162230; font-weight: 700; }
+
+    .profile-header {
+      background: linear-gradient(145deg, #162230, #0f1d2d);
+      border-radius: 24px;
+      padding: 24px;
+      border: 1px solid #2e4b60;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .avatar-circle {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(145deg, #ffdb5c, #e0a800);
+      color: #162230;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; font-weight: 800;
+      text-transform: uppercase;
+      box-shadow: 0 0 20px #ffdb5c80;
+    }
+    .profile-name { font-size: 1.6rem; font-weight: 800; color: #fff; text-transform: capitalize; }
+    .profile-since { color: #8aaec9; font-size: 0.9rem; margin-top: 4px; }
+    .profile-balance { margin-left: auto; text-align: right; }
+    .profile-balance .label { color: #8aaec9; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+    .profile-balance .value { font-size: 2rem; font-weight: 800; color: #7ef0a0; margin-top: 4px; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #10232e;
+      border-radius: 18px;
+      padding: 18px;
+      border: 1px solid #2e4b60;
+      text-align: center;
+    }
+    .stat-card .label { color: #8aaec9; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .stat-card .value { font-size: 1.6rem; font-weight: 800; color: #fff; }
+    .stat-card.green .value { color: #7ef0a0; }
+    .stat-card.red   .value { color: #f09a7e; }
+    .stat-card.gold  .value { color: #ffdb5c; }
+
+    /* UPI Deposit Card Styles */
+    .deposit-card {
+      background: #10232e;
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid #2e4b60;
+      margin-top: 20px;
+    }
+    .deposit-card h2 { font-size: 1.25rem; color: #d6e9ff; margin-bottom: 6px; }
+    .deposit-form { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+    .input-field { padding: 12px 16px; border-radius: 12px; border: 1px solid #2e4b60; background: #08121e; color: white; font-size: 1rem; outline: none; }
+    .input-field:focus { border-color: #3b82f6; }
+    .deposit-btn { padding: 14px; background: linear-gradient(145deg, #34d399, #059669); color: #000; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+    .deposit-btn:hover { filter: brightness(1.1); transform: scale(1.01); }
+    .deposit-msg { margin-top: 10px; font-weight: bold; font-size: 0.95rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+  <a href="/">🎮 Game</a>
+  <a href="/deposit.html">💳 Deposit</a>
+  <a href="/history.html">📜 History</a>
+  <a href="/leaderboard.html">🏆 Leaderboard</a>
+  <a href="/profile.html">👤 Profile</a>
+  <button onclick="logout()" class="btn-secondary" style="padding:8px 14px; font-size:0.9rem; margin-left:auto;">Logout</button>
+</div>
+
+    <div id="content">Loading...</div>
+  </div>
+
+  <script>
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    async function load() {
+      const res = await fetch('/api/profile/me');
+      if (res.status === 401) { window.location.href = '/login.html'; return; }
+      const p = await res.json();
+
+      const initial = p.username.charAt(0).toUpperCase();
+      const since = new Date(p.memberSince).toLocaleDateString();
+      const winRateColor = p.winRate >= 50 ? 'green' : 'red';
+
+      document.getElementById('content').innerHTML = `
+        <div class="profile-header">
+          <div class="avatar-circle">${initial}</div>
+          <div>
+            <div class="profile-name">${p.username}</div>
+            <div class="profile-since">📅 Member since ${since}</div>
+          </div>
+          <div class="profile-balance">
+            <div class="label">Balance</div>
+            <div class="value">$${p.balance.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="label">Total Bets</div>
+            <div class="value">${p.totalBets}</div>
+          </div>
+          <div class="stat-card green">
+            <div class="label">Wins</div>
+            <div class="value">${p.wins}</div>
+          </div>
+          <div class="stat-card red">
+            <div class="label">Losses</div>
+            <div class="value">${p.losses}</div>
+          </div>
+          <div class="stat-card ${winRateColor}">
+            <div class="label">Win Rate</div>
+            <div class="value">${p.winRate}%</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card green">
+            <div class="label">Total Won</div>
+            <div class="value">+$${p.totalWon.toFixed(2)}</div>
+          </div>
+          <div class="stat-card red">
+            <div class="label">Total Lost</div>
+            <div class="value">-$${p.totalLost.toFixed(2)}</div>
+          </div>
+          <div class="stat-card ${p.netProfit >= 0 ? 'green' : 'red'}">
+            <div class="label">Net Profit</div>
+            <div class="value">${p.netProfit >= 0 ? '+' : ''}$${p.netProfit.toFixed(2)}</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card gold">
+            <div class="label">🔥 Biggest Win</div>
+            <div class="value">+$${p.biggestWin.toFixed(2)}</div>
+          </div>
+          <div class="stat-card red">
+            <div class="label">💀 Biggest Loss</div>
+            <div class="value">-$${p.biggestLoss.toFixed(2)}</div>
+          </div>
+        </div>
+
+        <!-- UPI Deposit Gateway Section -->
+        <div class="deposit-card">
+          <h2>💳 UPI Token Deposit</h2>
+          <p style="color:#8aaec9; font-size:0.9rem; margin-top:4px;">Transfer via UPI and submit details to instantly credit tokens to your balance.</p>
+          
+          <div class="deposit-form">
+            <label style="font-size:0.85rem; color:#a0c0da;">Deposit Amount ($)</label>
+            <input type="number" id="depositAmount" class="input-field" placeholder="e.g. 10" min="1">
+            
+            <label style="font-size:0.85rem; color:#a0c0da; margin-top:4px;">UPI Transaction ID / Ref No.</label>
+            <input type="text" id="upiId" class="input-field" placeholder="e.g. UPI/9876543210">
+            
+            <button class="deposit-btn" onclick="submitUpiDeposit()">Pay via UPI & Add Tokens</button>
+          </div>
+          <div id="depositMsg" class="deposit-msg"></div>
+        </div>
+      `;
+    }
+
+    async function submitUpiDeposit() {
+      const amount = document.getElementById('depositAmount').value;
+      const upiId = document.getElementById('upiId').value.trim();
+      const msgEl = document.getElementById('depositMsg');
+
+      msgEl.style.color = '#8aaec9';
+      msgEl.textContent = 'Verifying UPI transfer...';
+
+      try {
+        const res = await fetch('/api/profile/deposit-upi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount, upiId })
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+          msgEl.style.color = '#34d399';
+          msgEl.textContent = `✅ ${result.message}`;
+          document.getElementById('depositAmount').value = '';
+          document.getElementById('upiId').value = '';
+          load(); // Reload profile metrics and balance instantly
+        } else {
+          msgEl.style.color = '#f87171';
+          msgEl.textContent = `❌ ${result.error || 'Deposit failed'}`;
+        }
+      } catch (err) {
+        msgEl.style.color = '#f87171';
+        msgEl.textContent = '❌ Network error during UPI deposit.';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

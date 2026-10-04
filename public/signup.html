@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Up</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="login-overlay" style="display:flex;">
+    <div class="login-box">
+      <h2>Create Account</h2>
+      <p>Pick a username and password</p>
+      <input type="text" id="username" placeholder="Username">
+      <input type="password" id="password" placeholder="Password (min 6)">
+      <button onclick="signup()">Sign Up</button>
+      <p style="margin-top:16px; color:#8aaec9;">Already have one? <a href="/login.html" style="color:#ffdb5c;">Log in</a></p>
+      <div id="msg" style="margin-top:12px;"></div>
+    </div>
+  </div>
+  <script>
+    async function signup() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('msg');
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        msg.style.color = '#7ef0a0';
+        msg.innerText = 'Created! Redirecting...';
+        setTimeout(() => window.location.href = '/', 700);
+      } else {
+        msg.style.color = '#ffa07a';
+        msg.innerText = data.error;
+      }
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') signup(); });
+  </script>
+</body>
+</html>

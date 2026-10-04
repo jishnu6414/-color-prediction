@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Betting History</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { display: block; padding: 24px; }
+    .container { max-width: 720px; margin: 0 auto; }
+    .top-nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .top-nav a { color: #b6d6f0; text-decoration: none; padding: 8px 14px; background: #162230; border-radius: 12px; border: 1px solid #2e4b60; font-size: 0.9rem; }
+    .top-nav a:hover { background: #1e3448; color: #fff; }
+    .top-nav a.active { background: #ffdb5c; color: #162230; font-weight: 700; }
+
+    .history-card {
+      background: #10232e;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      border: 1px solid #2e4b60;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+    .history-info .pred { font-weight: 700; font-size: 1.1rem; text-transform: uppercase; color: #fff; }
+    .history-info .date { font-size: 0.8rem; color: #8aaec9; margin-top: 4px; }
+    .history-amounts { text-align: right; }
+    .history-amounts .bet { font-size: 0.9rem; color: #8aaec9; }
+    .history-amounts .change { font-size: 1.1rem; font-weight: 800; margin-top: 2px; }
+    .history-amounts .change.win { color: #7ef0a0; }
+    .history-amounts .change.loss { color: #f09a7e; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="/">🎮 Game</a>
+      <a href="/deposit.html">💳 Deposit</a>
+      <a href="/history.html" class="active">📜 History</a>
+      <a href="/leaderboard.html">🏆 Leaderboard</a>
+      <a href="/profile.html">👤 Profile</a>
+      <button onclick="logout()" class="btn-secondary" style="padding:8px 14px; font-size:0.9rem; margin-left:auto;">Logout</button>
+    </div>
+
+    <h1 style="font-size:1.8rem; margin-bottom:8px;">📜 Bet History</h1>
+    <p style="color:#8aaec9; margin-bottom:20px;">Review your past predictions and round outcomes</p>
+
+    <div id="historyContainer">Loading history...</div>
+  </div>
+
+  <script>
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/history');
+        if (res.status === 401) { window.location.href = '/login.html'; return; }
+        const bets = await res.json();
+        const container = document.getElementById('historyContainer');
+
+        if (!bets || bets.length === 0) {
+          container.innerHTML = '<div style="text-align:center; color:#5f7d94; padding:40px;">No betting history found yet. Go play a round!</div>';
+          return;
+        }
+
+        container.innerHTML = bets.map(b => {
+          const isWin = b.isWin;
+          const dateStr = new Date(b.createdAt).toLocaleString();
+          return `
+            <div class="history-card" style="border-left: 5px solid ${isWin ? '#34d399' : '#f87171'};">
+              <div class="history-info">
+                <div class="pred">Picked: ${b.prediction} &bull; Result: ${b.outcome}</div>
+                <div class="date">${dateStr}</div>
+              </div>
+              <div class="history-amounts">
+                <div class="bet">Bet: $${b.betAmount.toFixed(2)}</div>
+                <div class="change ${isWin ? 'win' : 'loss'}">
+                  ${isWin ? '+' : ''}$${b.netChange.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Error loading history:', err);
+        document.getElementById('historyContainer').innerHTML = '<div style="color:#f87171; text-align:center;">Failed to load history.</div>';
+      }
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>

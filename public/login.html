@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="login-overlay" style="display:flex;">
+    <div class="login-box">
+      <h2>Welcome Back</h2>
+      <p>Enter your credentials to play</p>
+      <input type="text" id="username" placeholder="Username">
+      <input type="password" id="password" placeholder="Password">
+      <button onclick="login()">Log In</button>
+      <p style="margin-top:16px; color:#8aaec9;">New here? <a href="signup.html" style="color:#ffdb5c;">Create account</a></p>
+      <div id="msg" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <script>
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('msg');
+
+      if (!username || !password) {
+        msg.style.color = '#ffa07a';
+        msg.innerText = 'Please enter both username and password.';
+        return;
+      }
+
+      try {
+        // Send request to your Express backend API
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          msg.style.color = '#7ef0a0';
+          msg.innerText = 'Logged in successfully! Redirecting...';
+          
+          setTimeout(() => {
+            // Check if backend session identifies the user as an admin
+            if (data.isAdmin) {
+              window.location.href = 'admin.html';
+            } else {
+              window.location.href = 'index.html';
+            }
+          }, 700);
+        } else {
+          msg.style.color = '#ffa07a';
+          msg.innerText = data.error || 'Invalid username or password.';
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        msg.style.color = '#ffa07a';
+        msg.innerText = 'Server error during login.';
+      }
+    }
+
+    // Allow pressing Enter key to log in
+    document.addEventListener('keydown', e => { 
+      if (e.key === 'Enter') login(); 
+    });
+  </script>
+</body>
+</html>

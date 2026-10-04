@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070B14">
+<title>Game · Color Prediction Game</title>
+<link rel="stylesheet" href="premium.css">
+<style>
+.game-grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);grid-template-areas:"bal" "hero" "play" "recent" "status"}
+@media(min-width:1024px){.game-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);grid-template-areas:"hero bal" "hero play" "status recent";align-items:start}}
+.bal{grid-area:bal}.hero{grid-area:hero}.play{grid-area:play}.recent{grid-area:recent}.status{grid-area:status}
+.icon-btn[aria-pressed]{width:38px;height:38px}
+.bal-num{display:flex;align-items:center;gap:10px;font-size:clamp(2rem,8vw,2.6rem);font-weight:800;letter-spacing:-.02em;margin:6px 0 2px}
+.bal-sub{color:var(--muted);font-size:.85rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+.mini div{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+.mini b{display:block;font-size:1.05rem}.mini span{font-size:.7rem;color:var(--muted)}
+.bal .btn{width:100%}
+
+.hero{position:relative;text-align:center;overflow:hidden}
+.round-title{font-weight:700;letter-spacing:.08em;font-size:.82rem;color:var(--muted)}.round-title b{color:var(--text)}
+.stage{position:relative;width:min(100%,340px);aspect-ratio:1;margin:28px auto 12px}
+.glow{position:absolute;inset:-8%;border-radius:50%;background:radial-gradient(circle,rgba(255,216,77,.2),transparent 66%);opacity:.45;transition:opacity .6s}
+.is-spinning .glow{opacity:1}
+.wheel{position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--red) 0 25%,var(--blue) 25% 50%,var(--green) 50% 75%,var(--yellow) 75% 100%);box-shadow:0 0 0 6px rgba(255,255,255,.05),0 0 0 7px var(--line2),0 24px 60px rgba(0,0,0,.55),inset 0 0 50px rgba(0,0,0,.28);transition:transform var(--ms,5000ms) cubic-bezier(.12,.72,.18,1),filter .6s;will-change:transform}
+.wheel.blur{filter:blur(.8px) saturate(1.1)}
+.wheel::before{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(90deg,transparent calc(50% - 1px),rgba(7,11,20,.5) calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px)),linear-gradient(0deg,transparent calc(50% - 1px),rgba(7,11,20,.5) calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px))}
+.wl{position:absolute;transform:translate(-50%,-50%);font-weight:800;font-size:clamp(.62rem,2.4vw,.8rem);letter-spacing:.14em;color:rgba(7,11,20,.62)}
+.sheen{position:absolute;inset:0;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.22),transparent 45%)}
+.ptr{position:absolute;left:50%;top:-16px;margin-left:-15px;z-index:4;filter:drop-shadow(0 4px 8px rgba(0,0,0,.55))}
+.ptr svg{display:block;transform-origin:50% 12%}
+.is-spinning .ptr svg{animation:tick .12s ease-in-out infinite alternate}
+.is-spinning .slow .ptr svg{animation-duration:.45s}
+@keyframes tick{from{transform:rotate(-8deg)}to{transform:rotate(5deg)}}
+.hub{position:absolute;left:50%;top:50%;width:30%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;z-index:3;display:grid;place-items:center;background:radial-gradient(circle at 30% 25%,#1c2b45,#0B1220);border:3px solid rgba(255,255,255,.14);box-shadow:0 6px 20px rgba(0,0,0,.5);font-weight:800;font-size:clamp(.7rem,3vw,1rem);transition:background .35s,color .35s}
+.next{color:var(--muted);font-size:.9rem;margin:6px 0 0}.next b{color:var(--text)}
+
+.result-pop{position:absolute;inset:0;z-index:6;display:grid;place-content:center;gap:2px;background:rgba(7,11,20,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;animation:popin .35s cubic-bezier(.12,.72,.18,1) both}
+@keyframes popin{from{opacity:0;transform:scale(.94)}}
+.pi{font-size:2.4rem}.pc{font-size:clamp(1.8rem,7vw,2.4rem);font-weight:800;letter-spacing:.04em}
+.pt{font-weight:800;letter-spacing:.14em;font-size:.85rem}.pa{font-weight:700;font-size:1rem;margin-top:4px}
+.result-pop.win .pt,.result-pop.win .pa{color:var(--green)}.result-pop.lose .pt,.result-pop.lose .pa{color:#ff7a77}
+#burst{position:absolute;left:50%;top:50%;pointer-events:none}
+.bp{position:absolute;width:7px;height:7px;border-radius:2px;animation:bp .9s cubic-bezier(.12,.72,.18,1) forwards}
+@keyframes bp{from{transform:translate(0,0) scale(1);opacity:1}to{transform:translate(var(--dx),var(--dy)) rotate(260deg) scale(.4);opacity:0}}
+
+.play h2,.recent h2,.status h2{margin:0 0 12px;font-size:.78rem;letter-spacing:.12em;color:var(--muted)}
+.colors{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cc{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:14px;min-height:78px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(160deg,color-mix(in srgb,var(--c) 14%,var(--card2)),var(--card2));cursor:pointer;text-align:left;transition:transform .2s cubic-bezier(.12,.72,.18,1),border-color .2s,box-shadow .2s,opacity .2s}
+.cc.red{--c:var(--red)}.cc.blue{--c:var(--blue)}.cc.green{--c:var(--green)}.cc.yellow{--c:var(--yellow)}
+.cc:hover:not(:disabled){transform:translateY(-2px);border-color:color-mix(in srgb,var(--c) 55%,transparent)}
+.cc:active:not(:disabled){transform:scale(.98)}
+.cc[aria-pressed=true]{transform:scale(1.02);border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 10px 30px color-mix(in srgb,var(--c) 28%,transparent)}
+.cc[aria-pressed=true]:hover:not(:disabled){transform:scale(1.02) translateY(-2px)}
+.cn{font-weight:800;letter-spacing:.06em;font-size:.95rem}.cm{font-size:.74rem;color:var(--muted)}
+.ck{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;background:var(--c);color:#0B1220;display:grid;place-items:center;opacity:0;transform:scale(.5);transition:.2s cubic-bezier(.12,.72,.18,1)}
+.cc[aria-pressed=true] .ck{opacity:1;transform:none}
+.cc:disabled{opacity:.5;cursor:not-allowed}
+
+.betlbl{display:flex;justify-content:space-between;margin:18px 0 8px}.betlbl span:last-child{color:var(--muted);font-size:.78rem}
+.bet-row{display:grid;grid-template-columns:52px minmax(0,1fr) 52px;gap:8px}
+.step{height:52px;border-radius:14px;border:1px solid var(--line2);background:rgba(255,255,255,.04);font-size:1.5rem;cursor:pointer;transition:transform .2s cubic-bezier(.12,.72,.18,1),background .2s}
+.step:hover:not(:disabled){transform:translateY(-2px);background:rgba(255,255,255,.09)}.step:active:not(:disabled){transform:scale(.96)}
+#betIn{height:52px;width:100%;min-width:0;text-align:center;font-size:1.3rem;font-weight:700;border-radius:14px;border:1px solid var(--line2);background:rgba(7,11,20,.55);-moz-appearance:textfield}
+#betIn::-webkit-inner-spin-button,#betIn::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+#betIn[aria-invalid=true]{border-color:var(--red)}
+.quick{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.q{min-height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-weight:700;font-size:.82rem;cursor:pointer;transition:transform .2s cubic-bezier(.12,.72,.18,1),background .2s}
+.q:hover:not(:disabled){transform:translateY(-2px);background:rgba(255,255,255,.09)}.q:active:not(:disabled){transform:scale(.98)}
+.q:disabled,.step:disabled,#betIn:disabled{opacity:.45;cursor:not-allowed}
+.msg{min-height:1.4em;color:#ff8a87;font-size:.8rem;margin-top:6px}
+.sum{margin:6px 0 14px;color:var(--muted);font-size:.85rem;min-height:1.4em}.sum b{color:var(--text)}
+#place{width:100%;padding:17px;font-size:.95rem;letter-spacing:.08em}
+
+.dots{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.rd{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:.68rem;font-weight:800;color:#0B1220}
+.rrow{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);margin-top:6px;font-size:.85rem}
+.win{color:var(--green)}.lose{color:#ff7a77}
+.empty-note{color:var(--muted);font-size:.88rem;padding:6px 0;margin:0}
+.kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:.88rem}.kv span{color:var(--muted)}
+.live{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.1em;font-size:.78rem;color:var(--green);margin-bottom:6px}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;animation:pulse 2s ease-in-out infinite}
+.foot{margin:16px 2px 0;padding:12px 14px;border-radius:14px;background:rgba(255,216,77,.07);border:1px solid rgba(255,216,77,.25);color:#e9d58a;font-size:.82rem;line-height:1.55}
+</style>
+</head>
+<body data-page="game">
+<main class="page" id="main">
+<div class="game-grid">
+
+  <section class="card bal" aria-label="Balance">
+    <div class="row between"><span class="lbl">TOTAL BALANCE</span>
+      <button class="icon-btn" id="eye" type="button" aria-pressed="false" aria-label="Hide balance"></button></div>
+    <div class="bal-num num"><span aria-hidden="true">🪙</span><span id="balNum" class="skel">00000.00</span></div>
+    <div class="bal-sub">User Wallet <span id="usernameDisplay" class="tag">Player</span></div>
+    <div class="mini">
+      <div><b class="num" id="stRounds">0</b><span>Rounds</span></div>
+      <div><b class="num" id="stWins">0</b><span>Wins</span></div>
+      <div><b class="num" id="stRate">0%</b><span>Win rate</span></div>
+    </div>
+    <a class="btn" href="/deposit.html">Wallet &amp; Transactions →</a>
+  </section>
+
+  <section class="card hero" id="hero" aria-label="Color wheel">
+    <div class="row between">
+      <div class="round-title">ROUND <b class="num" id="roundNo">#0001</b></div>
+      <span class="pill" id="phase" role="status">BETTING OPEN</span>
+    </div>
+    <div class="stage" id="stage">
+      <div class="glow"></div>
+      <div class="wheel" id="wheel" aria-hidden="true">
+        <span class="wl" style="left:72%;top:28%">RED</span>
+        <span class="wl" style="left:72%;top:72%">BLUE</span>
+        <span class="wl" style="left:28%;top:72%">GREEN</span>
+        <span class="wl" style="left:28%;top:28%">YELLOW</span>
+      </div>
+      <div class="sheen"></div>
+      <div class="ptr" aria-hidden="true"><svg width="30" height="36" viewBox="0 0 30 36"><path d="M15 36L2 8Q15-4 28 8z" fill="#F8FAFC"/><circle cx="15" cy="11" r="4" fill="#FFD84D"/></svg></div>
+      <div class="hub" id="hub">?</div>
+    </div>
+    <p class="next" id="next">Next result in <b class="num" id="nextB">after you bet</b></p>
+    <div class="result-pop" id="pop" role="status" hidden>
+      <div id="burst"></div>
+      <div class="pi" id="popIcon"></div><div class="pc" id="popColor"></div>
+      <div class="pt" id="popTitle"></div><div class="pa num" id="popAmt"></div>
+    </div>
+  </section>
+
+  <section class="card play" id="play" aria-label="Place your bet">
+    <h2>CHOOSE A COLOR</h2>
+    <div class="colors" role="group" aria-label="Color choices">
+      <button class="cc red" type="button" data-color="red" aria-pressed="false"><span class="cn">🔴 RED</span><span class="cm">Pays 2×</span><span class="ck">✓</span></button>
+      <button class="cc blue" type="button" data-color="blue" aria-pressed="false"><span class="cn">🔵 BLUE</span><span class="cm">Pays 2×</span><span class="ck">✓</span></button>
+      <button class="cc green" type="button" data-color="green" aria-pressed="false"><span class="cn">🟢 GREEN</span><span class="cm">Pays 2×</span><span class="ck">✓</span></button>
+      <button class="cc yellow" type="button" data-color="yellow" aria-pressed="false"><span class="cn">🟡 YELLOW</span><span class="cm">Pays 2×</span><span class="ck">✓</span></button>
+    </div>
+    <div class="betlbl"><label class="lbl" for="betIn">BET AMOUNT</label><span>min 10 · max 10,000</span></div>
+    <div class="bet-row">
+      <button class="step" id="dec" type="button">−</button>
+      <input id="betIn" type="number" inputmode="numeric" min="10" max="10000" step="10" value="100">
+      <button class="step" id="inc" type="button">+</button>
+    </div>
+    <div class="quick">
+      <button class="q" type="button" data-amt="10">10</button><button class="q" type="button" data-amt="50">50</button>
+      <button class="q" type="button" data-amt="100">100</button><button class="q" type="button" data-amt="500">500</button>
+      <button class="q" type="button" data-amt="max">MAX</button>
+    </div>
+    <div class="msg" id="betMsg" role="alert"></div>
+    <div class="sum" id="sum">Pick a color to continue.</div>
+    <button class="btn btn-gold" id="place" type="button"><span class="t">🎲 PLACE BET</span></button>
+  </section>
+
+  <section class="card recent" aria-label="Recent results">
+    <h2>YOUR RECENT HISTORY</h2>
+    <div id="recentBox"><div class="skel" style="height:90px"></div></div>
+  </section>
+
+  <section class="card status" aria-label="Game status">
+    <div class="live">SECURE PLAYER SESSION</div>
+    <div class="kv"><span>Account</span><b class="num" id="statUser">Authenticated</b></div>
+    <div class="kv"><span>Environment</span><b class="num">Private User Ledger</b></div>
+  </section>
+</div>
+</main>
+
+<script src="shell.js"></script>
+<script>
+(() => {
+  const { S, Store, toast, countTo, fmt, api, me, sound, haptic, icon, errorState } = Shell;
+  const $ = id => document.getElementById(id);
+  const C = { red: { e: '🔴', n: 'RED', a: 45, L: 'R', h: '#EF5350' }, blue: { e: '🔵', n: 'BLUE', a: 135, L: 'B', h: '#4F7FF5' }, green: { e: '🟢', n: 'GREEN', a: 225, L: 'G', h: '#4CCB72' }, yellow: { e: '🟡', n: 'YELLOW', a: 315, L: 'Y', h: '#F5D76E' } };
+  const MIN = 10, MAX = 10000, MULT = 2;
+  const PHASES = { betting: 'BETTING OPEN', locked: 'BETTING LOCKED', spinning: 'SPINNING', result: 'RESULT', settled: 'SETTLED' };
+  const st = { phase: 'betting', round: 1, pick: null, bet: 100, balance: 0, shown: 0, rot: 0, hidden: !!Store.get('hideBal', false), rounds: 0, wins: 0, recent: [] };
+  const pad = n => '#' + String(n).padStart(4, '0');
+  const num = n => Number(n).toLocaleString('en-US');
+
+  function paintBal(from, to) {
+    const el = $('balNum'); el.classList.remove('skel');
+    if (st.hidden) { el.textContent = '••••••'; return; }
+    countTo(el, from, to, 800);
+  }
+  function paintEye() {
+    $('eye').innerHTML = icon(st.hidden ? 'eyeoff' : 'eye', 18);
+    $('eye').setAttribute('aria-pressed', st.hidden);$('eye').setAttribute('aria-label', st.hidden ? 'Show balance' : 'Hide balance');
+  }
+  function paintStats() {
+    $('stRounds').textContent = num(st.rounds);
+    $('stWins').textContent = num(st.wins);$('stRate').textContent = st.rounds ? (st.wins / st.rounds * 100).toFixed(1) + '%' : '0%';
+    $('roundNo').textContent = pad(st.round);
+  }
+  function setPhase(p) {
+    st.phase = p;
+    const el = $('phase'); el.textContent = PHASES[p]; el.className = 'pill ' + p;
+    $('hero').classList.toggle('is-spinning', p === 'spinning');
+    const lock = p !== 'betting';
+    document.querySelectorAll('.cc,.step,.q,#betIn,#place').forEach(x => { x.disabled = lock; });
+  }
+  function summary() {
+    const s = $('sum');
+    if (!st.pick) { s.textContent = 'Pick a color to continue.'; return; }
+    const c = C[st.pick];
+    s.innerHTML = `Your pick <b>${c.e} ${c.n}</b> · Bet <b>🪙 ${num(st.bet || 0)}</b> · Win pays <b>${num((st.bet || 0) * MULT)}</b>`;
+  }
+  function validate() {
+    let m = '';
+    if (!Number.isInteger(st.bet) || st.bet < MIN) m = `Minimum bet is ${MIN} coins.`;
+    else if (st.bet > MAX) m = `Maximum bet is ${num(MAX)} coins.`;
+    else if (st.bet > st.balance) m = 'Not enough balance.';
+    $('betMsg').textContent = m;
+    $('betIn').setAttribute('aria-invalid', m ? 'true' : 'false');
+    return !m;
+  }
+  function setBet(v) { st.bet = v; $('betIn').value = v; validate(); summary(); }
+
+  function renderRecent() {
+    const box = $('recentBox');
+    if (!st.recent.length) { box.innerHTML = '<p class="empty-note">No history yet. Place your first bet to see personal records.</p>'; return; }
+    box.innerHTML = '<div class="dots">' + st.recent.map(r => { const c = C[r.outcome] || C.red; return `<span class="rd" style="background:${c.h}" title="${c.n}" aria-label="${c.n}">${c.L}</span>`; }).join('') + '</div>' +
+      st.recent.slice(0, 5).map(r => { const c = C[r.prediction] || C.red; const n = Number(r.netChange) || 0;
+        return `<div class="rrow"><span>${c.e} ${c.n}</span><span class="num">🪙 ${num(r.betAmount)}</span><b class="num ${r.isWin ? 'win' : 'lose'}">${n >= 0 ? '+' : ''}${num(n)}</b></div>`; }).join('');
+  }
+
+  function spin(color, done) {
+    setPhase('spinning');
+    const ms = S.anim() ? 4000 : 700, wheel = $('wheel'), stage =$('stage');
+    wheel.style.setProperty('--ms', ms + 'ms');
+    const target = C[color].a + (Math.random() - .5) * 56;
+    const want = (360 - target + 360) % 360, cur = ((st.rot % 360) + 360) % 360;
+    st.rot += 360 * 4 + ((want - cur + 360) % 360);
+    $('hub').textContent = '…';
+    wheel.classList.add('blur');
+    wheel.style.transform = `rotate(${st.rot}deg)`;
+    setTimeout(() => { wheel.classList.remove('blur'); done(); }, ms + 100);
+  }
+
+  function settle(r, pick, bet) {
+    setPhase('result');
+    const won = !!r.won, c = C[r.resultColor];
+    $('hub').textContent = c.n;
+    $('hub').style.background = c.h;
+    $('hub').style.color = '#0B1220';
+    
+    const pop = $('pop');
+    pop.className = 'result-pop ' + (won ? 'win' : 'lose');
+    pop.hidden = false;
+    $('popIcon').textContent = won ? '🎉' : '💫';
+    $('popColor').textContent = c.e + ' ' + c.n;
+    $('popTitle').textContent = won ? 'YOU WON' : 'YOU LOST';
+    $('popAmt').textContent = (won ? '+' : '') + num(r.netChange) + ' COINS';
+    toast(won ? `🎉 Won ${num(r.netChange)} coins!` : 'Round settled', won ? 'success' : 'info');
+
+    setTimeout(() => {
+      pop.hidden = true;
+      setPhase('betting');
+      st.balance = r.balance;
+      paintBal(st.shown, r.balance);
+      st.shown = r.balance;
+      st.rounds++;
+      if (won) st.wins++;
+      st.round++;
+      st.recent.unshift({ prediction: pick, outcome: r.resultColor, isWin: won, betAmount: bet, netChange: r.netChange });
+      paintStats();
+      renderRecent();
+      validate();
+    }, 2000);
+  }
+
+  async function place() {
+    if (st.phase !== 'betting') return;
+    if (!st.pick) { toast('Please select a color first', 'error'); return; }
+    if (!validate()) { toast($('betMsg').textContent, 'error'); return; }
+
+    const pick = st.pick, bet = st.bet, before = st.balance;
+    setPhase('locked');
+
+    try {
+      const res = await api('/api/spin/play', { method: 'POST', body: { color: pick, amount: bet } });
+      st.shown = before - bet;
+      paintBal(before, st.shown);
+      spin(res.resultColor, () => settle(res, pick, bet));
+    } catch (err) {
+      console.error('Bet error:', err);
+      toast(err.message || 'Bet failed', 'error');
+      setPhase('betting');
+    }
+  }
+
+  async function init() {
+    try {
+      const user = await me();
+      st.balance = st.shown = Number(user.balance) || 0;
+      $('usernameDisplay').textContent = user.username;
+      $('statUser').textContent = user.username;
+
+      // Fetch personal history for this user only
+      const historyRes = await api('/api/history');
+      st.recent = Array.isArray(historyRes) ? historyRes : (historyRes.history || []);
+      st.rounds = st.recent.length;
+      st.wins = st.recent.filter(h => h.isWin).length;
+      st.round = st.rounds + 1;
+
+      paintBal(0, st.balance);
+      paintStats();
+      renderRecent();
+      validate();
+      summary();
+    } catch (e) {
+      console.error('Init failed', e);
+      window.location.href = '/login.html';
+    }
+  }
+
+  document.querySelectorAll('.cc').forEach(b => b.addEventListener('click', () => {
+    if (st.phase !== 'betting') return;
+    st.pick = b.dataset.color;
+    document.querySelectorAll('.cc').forEach(x => x.setAttribute('aria-pressed', x === b));
+    summary();
+  }));
+
+  $('betIn').addEventListener('input', () => { st.bet = Number($('betIn').value); validate(); summary(); });$('betIn').addEventListener('keydown', e => { if (e.key === 'Enter') place(); });
+  $('dec').onclick = () => setBet(Math.max(MIN, st.bet - 10));$('inc').onclick = () => setBet(Math.min(MAX, st.bet + 10));
+  document.querySelectorAll('.q').forEach(b => b.onclick = () => {
+    const v = b.dataset.amt === 'max' ? Math.floor(st.balance) : Number(b.dataset.amt);
+    setBet(Math.max(MIN, Math.min(MAX, v)));
+  });
+  $('place').onclick = place;
+  $('eye').onclick = () => { st.hidden = !st.hidden; Store.set('hideBal', st.hidden); paintEye(); paintBal(st.shown, st.shown); };
+
+  paintEye();
+  init();
+})();
+</script>
+</body>
+</html>

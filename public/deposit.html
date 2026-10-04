@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UPI Token Deposit</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { display: block; padding: 24px; background: #08121e; color: #eef5ff; font-family: system-ui, sans-serif; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .top-nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .top-nav a { color: #b6d6f0; text-decoration: none; padding: 8px 14px; background: #162230; border-radius: 12px; border: 1px solid #2e4b60; font-size: 0.9rem; }
+    .top-nav a:hover { background: #1e3448; color: #fff; }
+    .top-nav a.active { background: #ffdb5c; color: #162230; font-weight: 700; }
+    
+    .card { background: #122133; border-radius: 20px; padding: 24px; border: 1px solid #22384a; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+    h1 { font-size: 1.6rem; margin-bottom: 6px; }
+    p { color: #8aaec9; font-size: 0.95rem; margin-bottom: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 12px; }
+    .input-field { padding: 12px 16px; border-radius: 12px; border: 1px solid #2e4b60; background: #08121e; color: white; font-size: 1rem; outline: none; }
+    .input-field:focus { border-color: #3b82f6; }
+    .deposit-btn { padding: 14px; background: linear-gradient(145deg, #34d399, #059669); color: #000; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; margin-top: 5px; }
+    .deposit-btn:hover { filter: brightness(1.1); transform: scale(1.01); }
+    .msg { margin-top: 15px; font-weight: bold; font-size: 0.95rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="/">🎮 Game</a>
+      <a href="/deposit.html" class="active">💳 Deposit</a>
+      <a href="/history.html">📜 History</a>
+      <a href="/leaderboard.html">🏆 Leaderboard</a>
+      <a href="/profile.html">👤 Profile</a>
+      <button onclick="logout()" class="btn-secondary" style="padding:8px 14px; font-size:0.9rem; margin-left:auto; background:#162230; color:#b6d6f0; border:1px solid #2e4b60; border-radius:12px; cursor:pointer;">Logout</button>
+    </div>
+
+    <div class="card">
+      <h1>💳 UPI Token Deposit Gateway</h1>
+      <p>Transfer funds via UPI to our merchant account and submit your transaction details below to instantly load tokens into your balance.</p>
+      
+      <div class="form-group">
+        <label style="font-size: 0.85rem; color: #a0c0da;">Deposit Amount ($)</label>
+        <input type="number" id="depositAmount" class="input-field" placeholder="e.g. 50" min="1">
+        
+        <label style="font-size: 0.85rem; color: #a0c0da;">UPI Transaction ID / Reference No.</label>
+        <input type="text" id="upiId" class="input-field" placeholder="e.g. UPI/1234567890">
+        
+        <button class="deposit-btn" onclick="submitDeposit()">Pay via UPI & Add Tokens</button>
+      </div>
+      <div id="depositMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <script>
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    async function submitDeposit() {
+      const amount = document.getElementById('depositAmount').value;
+      const upiId = document.getElementById('upiId').value.trim();
+      const msgEl = document.getElementById('depositMsg');
+
+      msgEl.style.color = '#8aaec9';
+      msgEl.textContent = 'Verifying UPI transfer with merchant system...';
+
+      try {
+        const res = await fetch('/api/profile/deposit-upi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount, upiId })
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+          msgEl.style.color = '#34d399';
+          msgEl.textContent = `✅ ${result.message} New Balance: $${result.newBalance.toFixed(2)}`;
+          document.getElementById('depositAmount').value = '';
+          document.getElementById('upiId').value = '';
+        } else {
+          msgEl.style.color = '#f87171';
+          msgEl.textContent = `❌ ${result.error || 'Deposit verification failed'}`;
+        }
+      } catch (err) {
+        msgEl.style.color = '#f87171';
+        msgEl.textContent = '❌ Network error during deposit processing.';
+      }
+    }
+  </script>
+</body>
+</html>
